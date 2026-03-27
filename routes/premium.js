@@ -5,7 +5,12 @@ import { requireAuth } from "../middleware/auth.js";
 import { syncStripePremium } from "../db/users.js";
 
 const router = Router();
-const stripe = new Stripe(process.env.STRIPE_SECRET_KEY || "");
+
+let _stripe = null;
+function getStripe() {
+  if (!_stripe) _stripe = new Stripe(process.env.STRIPE_SECRET_KEY || "");
+  return _stripe;
+}
 
 function assertStripeConfig() {
   const missing = [];
