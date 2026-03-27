@@ -4,7 +4,12 @@ import Stripe from "stripe";
 import { syncStripePremium, findById, updateUser } from "../db/users.js";
 
 const router = Router();
-const stripe = new Stripe(process.env.STRIPE_SECRET_KEY || "");
+
+let _stripe = null;
+function getStripe() {
+  if (!_stripe) _stripe = new Stripe(process.env.STRIPE_SECRET_KEY || "");
+  return _stripe;
+}
 
 function extractUserId(eventObject) {
   return (
@@ -25,7 +30,7 @@ router.post("/stripe/webhook", express.raw({ type: "application/json" }), async 
 
   let event;
   try {
-    event = stripe.webhooks.constructEvent(req.body, signature, process.env.STRIPE_WEBHOOK_SECRET);
+    event = getStripe().webhooks.constructEvent(req.body, signature, process.env.STRIPE_WEBHOOK_SECRET);
   } catch (error) {
     return res.status(400).send(`Webhook error: ${error.message}`);
   }
