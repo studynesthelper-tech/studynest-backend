@@ -47,7 +47,7 @@ router.post("/checkout", requireAuth, async (req, res) => {
     const user = req.user;
     const metadata = { userId: user.id, source: "studynest_extension" };
 
-    const session = await stripe.checkout.sessions.create({
+    const session = await getStripe().checkout.sessions.create({
       mode:         "subscription",
       customer:     user.stripeCustomerId || undefined,
       customer_email: user.stripeCustomerId ? undefined : user.email || undefined,
@@ -73,7 +73,7 @@ router.post("/portal", requireAuth, async (req, res) => {
     if (!user.stripeCustomerId) {
       return res.status(400).json({ error: "No Stripe customer found for this user" });
     }
-    const session = await stripe.billingPortal.sessions.create({
+    const session = await getStripe().billingPortal.sessions.create({
       customer:   user.stripeCustomerId,
       return_url: `${process.env.APP_BASE_URL || "https://studynest.app"}/account/billing`,
     });
@@ -92,7 +92,7 @@ router.post("/checkout/confirm", requireAuth, async (req, res) => {
   if (!sessionId) return res.status(400).json({ error: "Missing sessionId" });
 
   try {
-    const session = await stripe.checkout.sessions.retrieve(sessionId, {
+    const session = await getStripe().checkout.sessions.retrieve(sessionId, {
       expand: ["subscription"],
     });
     const subscription = session.subscription;
