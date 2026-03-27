@@ -1,0 +1,9 @@
+# railway.toml — deploy to Railway with one click
+[build]
+builder = "nixpacks"
+
+[deploy]
+startCommand = "node server.js"
+restartPolicyType = "on_failure"
+restartPolicyMaxRetries = 3
+
