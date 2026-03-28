@@ -100,10 +100,4 @@ router.post("/stripe/webhook", express.raw({ type: "application/json" }), async 
 });
 
 export default router;
-```
 
----
-
-After pasting both files to GitHub and Railway redeploys, test:
-```
-https://studynest-server-production.up.railway.app/premium/status
