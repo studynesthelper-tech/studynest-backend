@@ -1,7 +1,7 @@
 // routes/stripe-webhook.js
 import express, { Router } from "express";
 import Stripe from "stripe";
-import { syncStripePremium, findById, updateUser } from "../db/users.js";
+import { syncStripePremium } from "../db/users.js";
 
 const router = Router();
 
@@ -37,15 +37,16 @@ router.post("/stripe/webhook", express.raw({ type: "application/json" }), async 
 
   try {
     switch (event.type) {
+
       case "checkout.session.completed": {
         const session = event.data.object;
         const userId  = extractUserId(session);
         if (userId) {
           syncStripePremium(userId, {
-            customerId:       session.customer ? String(session.customer) : null,
-            subscriptionId:   session.subscription ? String(session.subscription) : null,
-            status:           "active",
-            currentPeriodEnd: null,
+            customerId:        session.customer ? String(session.customer) : null,
+            subscriptionId:    session.subscription ? String(session.subscription) : null,
+            status:            "active",
+            currentPeriodEnd:  null,
             cancelAtPeriodEnd: false,
           });
         }
@@ -58,10 +59,10 @@ router.post("/stripe/webhook", express.raw({ type: "application/json" }), async 
         const userId = extractUserId(sub);
         if (userId) {
           syncStripePremium(userId, {
-            customerId:       sub.customer ? String(sub.customer) : null,
-            subscriptionId:   sub.id,
-            status:           sub.status || "inactive",
-            currentPeriodEnd: sub.current_period_end
+            customerId:        sub.customer ? String(sub.customer) : null,
+            subscriptionId:    sub.id,
+            status:            sub.status || "inactive",
+            currentPeriodEnd:  sub.current_period_end
               ? new Date(sub.current_period_end * 1000).toISOString()
               : null,
             cancelAtPeriodEnd: sub.cancel_at_period_end,
@@ -75,10 +76,10 @@ router.post("/stripe/webhook", express.raw({ type: "application/json" }), async 
         const userId = extractUserId(sub);
         if (userId) {
           syncStripePremium(userId, {
-            customerId:       sub.customer ? String(sub.customer) : null,
-            subscriptionId:   sub.id,
-            status:           "canceled",
-            currentPeriodEnd: sub.current_period_end
+            customerId:        sub.customer ? String(sub.customer) : null,
+            subscriptionId:    sub.id,
+            status:            "canceled",
+            currentPeriodEnd:  sub.current_period_end
               ? new Date(sub.current_period_end * 1000).toISOString()
               : null,
             cancelAtPeriodEnd: true,
@@ -99,3 +100,10 @@ router.post("/stripe/webhook", express.raw({ type: "application/json" }), async 
 });
 
 export default router;
+```
+
+---
+
+After pasting both files to GitHub and Railway redeploys, test:
+```
+https://studynest-server-production.up.railway.app/premium/status
