@@ -93,8 +93,10 @@ router.post("/checkout", requireAuth, async (req, res) => {
           quantity: 1,
         },
       ],
-      success_url: `${baseUrl}/upgrade/success?session_id={CHECKOUT_SESSION_ID}`,
-      cancel_url: `${baseUrl}/upgrade/cancel`,
+      success_url: process.env.EXTENSION_SUCCESS_URL
+        ? `${process.env.EXTENSION_SUCCESS_URL}?session_id={CHECKOUT_SESSION_ID}`
+        : `${baseUrl}?session_id={CHECKOUT_SESSION_ID}`,
+      cancel_url: process.env.EXTENSION_CANCEL_URL || baseUrl,
       metadata: { userId: user.id },
       subscription_data: {
         metadata: { userId: user.id },
