@@ -14,8 +14,8 @@ function getStripe() {
 
 function assertStripeConfig() {
   const missing = [];
-  if (!process.env.STRIPE_SECRET_KEY)    missing.push("STRIPE_SECRET_KEY");
-  if (!process.env.STRIPE_PRICE_ID)      missing.push("STRIPE_PRICE_ID");
+  if (!process.env.STRIPE_SECRET_KEY)     missing.push("STRIPE_SECRET_KEY");
+  if (!process.env.STRIPE_PRICE_ID)       missing.push("STRIPE_PRICE_ID");
   if (!process.env.STRIPE_WEBHOOK_SECRET) missing.push("STRIPE_WEBHOOK_SECRET");
   return missing;
 }
@@ -31,12 +31,12 @@ function ensureConfigured(res) {
 router.get("/status", requireAuth, async (req, res) => {
   const user = req.user;
   res.json({
-    userId:           user.id,
-    isPremium:        user.plan === "premium",
-    status:           user.stripeStatus || (user.plan === "premium" ? "active" : "inactive"),
-    expiresAt:        user.stripePeriodEnd || null,
+    userId:            user.id,
+    isPremium:         user.plan === "premium",
+    status:            user.stripeStatus || (user.plan === "premium" ? "active" : "inactive"),
+    expiresAt:         user.stripePeriodEnd || null,
     cancelAtPeriodEnd: Boolean(user.stripeCancelAtEnd),
-    source:           "stripe",
+    source:            "stripe",
   });
 });
 
@@ -44,16 +44,16 @@ router.get("/status", requireAuth, async (req, res) => {
 router.post("/checkout", requireAuth, async (req, res) => {
   if (ensureConfigured(res)) return;
   try {
-    const user = req.user;
+    const user     = req.user;
     const metadata = { userId: user.id, source: "studynest_extension" };
 
     const session = await getStripe().checkout.sessions.create({
-      mode:         "subscription",
-      customer:     user.stripeCustomerId || undefined,
+      mode:           "subscription",
+      customer:       user.stripeCustomerId || undefined,
       customer_email: user.stripeCustomerId ? undefined : user.email || undefined,
-      line_items:   [{ price: process.env.STRIPE_PRICE_ID, quantity: 1 }],
-      success_url:  `${process.env.EXTENSION_SUCCESS_URL || process.env.APP_BASE_URL + "/upgrade/success"}?session_id={CHECKOUT_SESSION_ID}`,
-      cancel_url:   process.env.EXTENSION_CANCEL_URL || process.env.APP_BASE_URL + "/upgrade/cancel",
+      line_items:     [{ price: process.env.STRIPE_PRICE_ID, quantity: 1 }],
+      success_url:    `${process.env.EXTENSION_SUCCESS_URL || process.env.APP_BASE_URL + "/upgrade/success"}?session_id={CHECKOUT_SESSION_ID}`,
+      cancel_url:     process.env.EXTENSION_CANCEL_URL || process.env.APP_BASE_URL + "/upgrade/cancel",
       metadata,
       subscription_data: { metadata },
       allow_promotion_codes: true,
@@ -84,8 +84,6 @@ router.post("/portal", requireAuth, async (req, res) => {
 });
 
 // ── POST /premium/checkout/confirm ───────────────────────────
-// Called by the extension after a successful checkout redirect
-// to immediately sync the subscription into the user record.
 router.post("/checkout/confirm", requireAuth, async (req, res) => {
   if (ensureConfigured(res)) return;
   const sessionId = req.body?.sessionId;
