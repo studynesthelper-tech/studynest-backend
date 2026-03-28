@@ -54,22 +54,36 @@ router.get("/status", requireAuth, async (req, res) => {
 // ─────────────────────────────────────────
 router.post("/checkout", requireAuth, async (req, res) => {
   try {
-    const missing = checkConfig();
-    if (missing.length) {
-      return res
-        .status(500)
-        .json({ error: `Missing config: ${missing.join(", ")}` });
+    const user = req.user;
+    const stripe = getStripe();
+
+    // ✅ ALWAYS create a Stripe customer if none exists
+    let customerId = user.stripeCustomerId;
+
+    if (!customerId) {
+      const customer = await stripe.customers.create({
+        metadata: {
+          userId: user.id,
+        },
+      });
+
+      customerId = customer.id;
+
+      // (optional) save to DB later
+      console.log("Created Stripe customer:", customerId);
     }
 
-    const user = req.user;
+    const baseUrl = process.env.APP_BASE_URL;
+    if (!baseUrl) {
+      return res.status(500).json({
+        error: "Missing APP_BASE_URL",
+      });
+    }
 
-    const session = await getStripe().checkout.sessions.create({
+    const session = await stripe.checkout.sessions.create({
       mode: "subscription",
 
-      customer: user.stripeCustomerId || undefined,
-      customer_email: user.stripeCustomerId
-        ? undefined
-        : user.email || undefined,
+      customer: customerId, // ✅ always present now
 
       line_items: [
         {
@@ -78,14 +92,8 @@ router.post("/checkout", requireAuth, async (req, res) => {
         },
       ],
 
-      success_url: `${
-        process.env.EXTENSION_SUCCESS_URL ||
-        process.env.APP_BASE_URL + "/upgrade/success"
-      }?session_id={CHECKOUT_SESSION_ID}`,
-
-      cancel_url:
-        process.env.EXTENSION_CANCEL_URL ||
-        process.env.APP_BASE_URL + "/upgrade/cancel",
+      success_url: `${baseUrl}/upgrade/success?session_id={CHECKOUT_SESSION_ID}`,
+      cancel_url: `${baseUrl}/upgrade/cancel`,
 
       metadata: {
         userId: user.id,
@@ -96,18 +104,14 @@ router.post("/checkout", requireAuth, async (req, res) => {
           userId: user.id,
         },
       },
-
-      allow_promotion_codes: true,
     });
 
-    return res.json({
-      url: session.url,
-      id: session.id,
-    });
+    res.json({ url: session.url });
+
   } catch (err) {
-    console.error("CHECKOUT ERROR:", err);
-    return res.status(500).json({
-      error: err.message || "Failed to create checkout session",
+    console.error("🔥 STRIPE ERROR:", err);
+    res.status(500).json({
+      error: err.message || "Stripe failed",
     });
   }
 });
