@@ -4,7 +4,7 @@ import { findById } from "../db/users.js";
 
 export const requireAuth = (req, res, next) => {
   const header = req.headers.authorization || "";
-  const token = header.startsWith("Bearer ") ? header.slice(7) : null;
+  const token  = header.startsWith("Bearer ") ? header.slice(7) : null;
 
   if (!token) {
     return res.status(401).json({ error: "No token provided" });
@@ -18,22 +18,14 @@ export const requireAuth = (req, res, next) => {
       return res.status(401).json({ error: "Invalid token: no user id" });
     }
 
-    const dbUser = findById(String(userId));
+    const user = findById(String(userId));
+    if (!user) {
+      // Token is valid but user doesn't exist in DB
+      // This happens when using old tokens — force re-login
+      return res.status(401).json({ error: "User not found — please sign in again" });
+    }
 
-    req.user = dbUser || {
-      id: String(userId),
-      email: payload.email || null,
-      name: payload.name || "User",
-      plan: payload.plan || "free",
-      freeQuestions: 20,
-      totalQuestions: 0,
-      stripeCustomerId: null,
-      stripeSubId: null,
-      stripeStatus: "inactive",
-      stripePeriodEnd: null,
-      stripeCancelAtEnd: false,
-    };
-
+    req.user = user;
     next();
   } catch {
     return res.status(401).json({ error: "Invalid or expired token" });
